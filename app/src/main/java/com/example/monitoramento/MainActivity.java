@@ -127,7 +127,13 @@ public class MainActivity extends AppCompatActivity {
                         conexao = true;
 
                         ConnectThread connectThread = new ConnectThread(socket);
-                        connectThread.start();
+                        try{
+                            connectThread.start();
+                        }catch (Exception e){
+                            Toast.makeText(getApplicationContext(), "Erro ao iniciar a thread", Toast.LENGTH_LONG).show();
+                            Log.e("REC", "Error to start thread: " + e.toString());
+                        }
+
 
 
                         Toast.makeText(getApplicationContext(), "Voce Foi Conectado!", Toast.LENGTH_LONG).show();
@@ -165,8 +171,8 @@ public class MainActivity extends AppCompatActivity {
             try {
                 // Get a BluetoothSocket to connect with the given BluetoothDevice.
                 // MY_UUID is the app's UUID string, also used in the server code.
-                tmpIn = socket.getInputStream();
-                tmpOut = socket.getOutputStream();
+                tmpIn = socket1.getInputStream();
+                tmpOut = socket1.getOutputStream();
             } catch (IOException e) {
                 Log.e("TAG", "Socket's create() method failed", e);
             }
@@ -177,18 +183,19 @@ public class MainActivity extends AppCompatActivity {
         public void run() {
             // Cancel discovery because it otherwise slows down the connection.
             Log.e("REC", "RUN");
-            byte[] buffer = new byte[10240000];
+            byte[] buffer = new byte[1];
             int bytes;
 
             while (true) {
                 Log.e("REC", "WHILE");
                 try {
                     bytes = mmInStream.read(buffer);
+                    Log.e("REC", "Bytes" + bytes);
 
                     String dadosbt = new String(buffer,0,bytes);
-
-                    mHandler.obtainMessage(MESSAGE_READ, bytes, -1, dadosbt).sendToTarget();
                     Log.e("REC", "DATA READ");
+                    mHandler.obtainMessage(MESSAGE_READ, bytes, -1, dadosbt).sendToTarget();
+
 
                 } catch (IOException e) {
                     Log.e("REC", "FAIL TO RECIEVE DATA");
