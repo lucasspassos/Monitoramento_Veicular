@@ -18,6 +18,15 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.github.pires.obd.commands.SpeedCommand;
+import com.github.pires.obd.commands.engine.RPMCommand;
+import com.github.pires.obd.commands.protocol.EchoOffCommand;
+import com.github.pires.obd.commands.protocol.LineFeedOffCommand;
+import com.github.pires.obd.commands.protocol.SelectProtocolCommand;
+import com.github.pires.obd.commands.protocol.TimeoutCommand;
+import com.github.pires.obd.commands.temperature.AmbientAirTemperatureCommand;
+import com.github.pires.obd.enums.ObdProtocols;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -127,13 +136,30 @@ public class MainActivity extends AppCompatActivity {
                         conexao = true;
 
                         ConnectThread connectThread = new ConnectThread(socket);
+
+                        try {
+
+                            new EchoOffCommand().run(socket.getInputStream(), socket.getOutputStream());
+                            new LineFeedOffCommand().run(socket.getInputStream(), socket.getOutputStream());
+                            new TimeoutCommand(125).run(socket.getInputStream(), socket.getOutputStream());
+                            new SelectProtocolCommand(ObdProtocols.AUTO).run(socket.getInputStream(), socket.getOutputStream());
+                            new AmbientAirTemperatureCommand().run(socket.getInputStream(), socket.getOutputStream());
+
+
+
+                        } catch (Exception e) {
+
+                            Toast.makeText(getApplicationContext(), "Error on initialize Pire's thread", Toast.LENGTH_LONG).show();
+                            Log.e("REC", "Error on initialize Pire's thread: " + e.toString());
+
+                        }
+
                         try{
                             connectThread.start();
                         }catch (Exception e){
                             Toast.makeText(getApplicationContext(), "Erro ao iniciar a thread", Toast.LENGTH_LONG).show();
                             Log.e("REC", "Error to start thread: " + e.toString());
                         }
-
 
 
                         Toast.makeText(getApplicationContext(), "Voce Foi Conectado!", Toast.LENGTH_LONG).show();
@@ -181,14 +207,37 @@ public class MainActivity extends AppCompatActivity {
         }
 
         public void run() {
-            // Cancel discovery because it otherwise slows down the connection.
+
             Log.e("REC", "RUN");
             byte[] buffer = new byte[1];
             int bytes;
 
+            RPMCommand engineRpmCommand = new RPMCommand();
+            SpeedCommand speedCommand = new SpeedCommand();
+
+
+            while (!Thread.currentThread().isInterrupted())
+            {
+                try {
+                    engineRpmCommand.run(mmInStream, mmOutStream);
+                    speedCommand.run(mmInStream, mmOutStream);
+                } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+                // TODO handle commands result
+                Log.e("TAG", "RPM: " + engineRpmCommand.getFormattedResult());
+                Log.e("TAG", "Speed: " + speedCommand.getFormattedResult());
+            }
+
             while (true) {
                 Log.e("REC", "WHILE");
                 try {
+
+
+
                     bytes = mmInStream.read(buffer);
                     Log.e("REC", "Bytes" + bytes);
 
